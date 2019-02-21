@@ -310,11 +310,17 @@ namespace Microsoft.Identity.Test.UIAutomation.Infrastructure
 
         public void PerformB2CFacebookProviderSignInFlow(ITestController controller, LabUser user, UserInformationFieldIds userInformationFieldIds)
         {
+            controller.WaitForWebElementByCssId(CoreUiTestConstants.FacebookAccountId);
+
             controller.Tap(CoreUiTestConstants.FacebookAccountId, XamarinSelector.ByHtmlIdAttribute);
+
+            controller.WaitForWebElementByCssId(CoreUiTestConstants.WebUpnB2CFacebookInputId);
 
             controller.EnterText(CoreUiTestConstants.WebUpnB2CFacebookInputId, 20, user.Upn, XamarinSelector.ByHtmlIdAttribute);
 
             controller.EnterText(userInformationFieldIds.PasswordInputId, user.Password, XamarinSelector.ByHtmlIdAttribute);
+
+            controller.WaitForWebElementByCssId(userInformationFieldIds.PasswordSignInButtonId);
 
             controller.Tap(userInformationFieldIds.PasswordSignInButtonId, XamarinSelector.ByHtmlIdAttribute);
         }
@@ -393,6 +399,8 @@ namespace Microsoft.Identity.Test.UIAutomation.Infrastructure
             controller.Tap(CoreUiTestConstants.AcquireTokenButtonId);
 
             controller.Tap(CoreUiTestConstants.B2CEditProfileContinueId, XamarinSelector.ByHtmlIdAttribute);
+
+            controller.WaitForWebElementByCssId(CoreUiTestConstants.B2CEditProfileContinueId);
 
             VerifyResult(controller);
         }
