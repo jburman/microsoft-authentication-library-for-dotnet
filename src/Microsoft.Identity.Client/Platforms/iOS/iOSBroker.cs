@@ -80,7 +80,7 @@ namespace Microsoft.Identity.Client.Platforms.iOS
 
             uiParent.CoreUiParent.CallerViewController.InvokeOnMainThread(() =>
             {
-                result = UIApplication.SharedApplication.CanOpenUrl(new NSUrl("msauthv2://"));
+                result = UIApplication.SharedApplication.CanOpenUrl(new NSUrl(BrokerParameter.BrokerV2));
             });
 
             if (!result)

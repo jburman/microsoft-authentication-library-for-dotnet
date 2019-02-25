@@ -57,7 +57,12 @@ namespace Microsoft.Identity.Client
 
         public const string CheckMsalTokenResponseReturnedFromBroker = "Checking MsalTokenResponse returned from broker. ";
         public const string BrokerResponseContainsAccessToken = "Broker response contains access token. Count of:  ";
-        public const string UnknownErrorReturnedInBrokerResponse = "Unknown error returned in broker response. ";    
+        public const string UnknownErrorReturnedInBrokerResponse = "Unknown error returned in broker response. ";
+        public const string BrokerInvocationRequired = "Broker invocation required. Adding BrokerInstallUrl to broker payload. ";
+        public const string BrokerInvocationNotRequired = "Broker invocation not required. Using regular auth flow. ";
+        public const string CanInvokeBrokerAcquireTokenWithBroker = "Can invoke broker. Will attempt to acquire token with broker. ";
+        public const string CannotInvokeTheBrokerMayRequireInstall = "Cannot invoke the broker directly, may require install...";
+
 
         public static string ErrorReturnedInBrokerResponse(string error)
         {

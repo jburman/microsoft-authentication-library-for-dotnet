@@ -52,7 +52,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
         private string _state;
         private readonly AcquireTokenInteractiveParameters _interactiveParameters;
         private MsalTokenResponse _msalTokenResponse;
-
+        private Dictionary<string, string> _brokerPayload = new Dictionary<string, string>();
         BrokerFactory brokerFactory = new BrokerFactory();
         private IBroker Broker;
 
@@ -92,36 +92,67 @@ namespace Microsoft.Identity.Client.Internal.Requests
         internal override async Task<AuthenticationResult> ExecuteAsync(CancellationToken cancellationToken)
         {
             await ResolveAuthorityEndpointsAsync().ConfigureAwait(false);
+            await AcquireAuthorizationAsync().ConfigureAwait(false);
+            VerifyAuthorizationResult();
 
             if (AuthenticationRequestParameters.IsBrokerEnabled)
             {
-                _msalTokenResponse = await CheckForBrokerAndSendTokenRequestAsync().ConfigureAwait(false);
+                _msalTokenResponse = await SendTokenRequestWithBrokerAsync(cancellationToken).ConfigureAwait(false);
             }
             else
-            { 
-                await AcquireAuthorizationAsync().ConfigureAwait(false);
-                VerifyAuthorizationResult();
+            {
                 _msalTokenResponse = await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
             }
 
             return CacheTokenResponseAndCreateAuthenticationResult(_msalTokenResponse);
         }
 
-        private async Task<MsalTokenResponse> CheckForBrokerAndSendTokenRequestAsync()
+        private async Task<MsalTokenResponse> SendTokenRequestWithBrokerAsync(CancellationToken cancellationToken)
         {
             Broker = brokerFactory.CreateBrokerFacade(ServiceBundle);
 
             if (Broker.CanInvokeBroker(_interactiveParameters.UiParent))
             {
-                return await Broker.AcquireTokenUsingBrokerAsync(
-                    AuthenticationRequestParameters.CreateRequestParametersForBroker()).ConfigureAwait(false);
+                AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.CanInvokeBrokerAcquireTokenWithBroker);
+
+                _brokerPayload = AuthenticationRequestParameters.CreateRequestParametersForBroker();
+
+                return await Broker.AcquireTokenUsingBrokerAsync(_brokerPayload).ConfigureAwait(false);
             }
             else
             {
-                throw new MsalServiceException(
-                    CoreErrorCodes.CannotInvokeBroker,
-                    MsalErrorMessage.CannotInvokeBroker);
+                AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.CannotInvokeTheBrokerMayRequireInstall);
+
+                return await CheckForBrokerRequirementAndAcquireTokenAsync(cancellationToken).ConfigureAwait(false);
             }
+        }
+
+        private async Task<MsalTokenResponse> CheckForBrokerRequirementAndAcquireTokenAsync(CancellationToken cancellationToken)
+        {
+            if (BrokerInvocationRequired())
+            {
+                return await Broker.AcquireTokenUsingBrokerAsync(_brokerPayload).ConfigureAwait(false);
+            }
+            else
+            {
+                return await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        internal bool BrokerInvocationRequired()
+        {
+            if (_authorizationResult.Code != null &&
+                !string.IsNullOrEmpty(_authorizationResult.Code) &&
+                _authorizationResult.Code.StartsWith(BrokerParameter.BrokerV2, StringComparison.Ordinal))
+            {
+                AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.BrokerInvocationRequired);
+
+                _brokerPayload[BrokerParameter.BrokerInstallUrl] = _authorizationResult.Code;
+                return true;
+            }
+
+            AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.BrokerInvocationNotRequired);
+            return false;
         }
 
         private async Task AcquireAuthorizationAsync()

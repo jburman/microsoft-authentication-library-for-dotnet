@@ -59,5 +59,6 @@ namespace Microsoft.Identity.Client.Internal.Broker
         public const string Force = "force";
         
         public const string BrokerInstallUrl = "broker_install_url";
+        public const string BrokerV2 = "msauthv2://";
     }
 }
