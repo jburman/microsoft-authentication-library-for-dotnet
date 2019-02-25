@@ -95,7 +95,7 @@ namespace Microsoft.Identity.Client.Internal.Requests
             await AcquireAuthorizationAsync().ConfigureAwait(false);
             VerifyAuthorizationResult();
 
-            if (AuthenticationRequestParameters.IsBrokerEnabled)
+            if (AuthenticationRequestParameters.IsBrokerEnabled || BrokerInvocationRequired())
             {
                 _msalTokenResponse = await SendTokenRequestWithBrokerAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -121,21 +121,8 @@ namespace Microsoft.Identity.Client.Internal.Requests
             }
             else
             {
-                AuthenticationRequestParameters.RequestContext.Logger.Info(LogMessages.CannotInvokeTheBrokerMayRequireInstall);
-
-                return await CheckForBrokerRequirementAndAcquireTokenAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        private async Task<MsalTokenResponse> CheckForBrokerRequirementAndAcquireTokenAsync(CancellationToken cancellationToken)
-        {
-            if (BrokerInvocationRequired())
-            {
-                return await Broker.AcquireTokenUsingBrokerAsync(_brokerPayload).ConfigureAwait(false);
-            }
-            else
-            {
-                return await SendTokenRequestAsync(GetBodyParameters(), cancellationToken).ConfigureAwait(false);
+                AuthenticationRequestParameters.RequestContext.Logger.Error(LogMessages.BrokerAuthenticationDidNotSucceed);
+                throw new MsalServiceException(MsalError.CannotInvokeBroker, MsalErrorMessage.CannotInvokeBroker);
             }
         }
 
